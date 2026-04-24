@@ -81,6 +81,9 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
+      '@types/leo-profanity':
+        specifier: ^1.5.5
+        version: 1.5.5
       '@types/morgan':
         specifier: ^1.9.10
         version: 1.9.10
@@ -609,6 +612,9 @@ packages:
 
   '@types/jsonwebtoken@9.0.10':
     resolution: {integrity: sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==}
+
+  '@types/leo-profanity@1.5.5':
+    resolution: {integrity: sha512-Cu9m2tXw3oJIQMIgT1qggRp0mlFNYkYxOGU/NRAyVDZ4mRdY6+AybE9lhy54s12ws5BJRRA+qkZhNCFrkij16g==}
 
   '@types/methods@1.1.4':
     resolution: {integrity: sha512-ymXWVrDiCxTBE3+RIrrP533E70eA+9qu7zdWoHuOmGujkYtzf4HQF96b8nwHLqhuf4ykX61IGRIB38CC6/sImQ==}
@@ -2122,6 +2128,8 @@ snapshots:
     dependencies:
       '@types/ms': 2.1.0
       '@types/node': 25.6.0
+
+  '@types/leo-profanity@1.5.5': {}
 
   '@types/methods@1.1.4': {}
 

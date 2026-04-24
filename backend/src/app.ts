@@ -6,7 +6,6 @@ import { globalErrorHandler } from './middlewares/errorHandler';
 
 const app: Application = express();
 
-// Middlewares de seguridad
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL }));
 app.use(express.json());
