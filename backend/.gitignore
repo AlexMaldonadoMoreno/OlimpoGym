@@ -1,0 +1,20 @@
+# Dependencias
+node_modules/
+
+# Entorno y Secretos (¡VITAL!)
+.env
+.env.*
+*.local
+
+# Archivos de compilación TypeScript
+dist/
+build/
+
+# Archivos del Editor (WebStorm)
+.idea/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*

@@ -51,7 +51,6 @@ const FeedbackForm = () => {
         setShowWarning(false);
     };
 
-    // === LÓGICA DE VALIDACIÓN ===
     const handleFormSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
 
