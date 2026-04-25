@@ -18,3 +18,5 @@ logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+olimpogymdb.sql

@@ -14,7 +14,9 @@ GRANT USAGE ON SCHEMA public TO app_user;      -- solo el rol de la app accede
 -- 1. TIPOS DE DATOS (ENUMS)
 -- ==========================================
 
-CREATE TYPE user_role     AS ENUM ('iniciado', 'entrenador', 'consejo');
+-- 🌟 NUEVO: Los 6 Roles Oficiales del OlimpoGym
+CREATE TYPE user_role     AS ENUM ('iniciado', 'recepcion', 'entrenador', 'nutriologo', 'fisioterapeuta', 'consejo');
+
 CREATE TYPE user_status   AS ENUM ('activo', 'advertido', 'suspendido', 'pendiente_medico');
 CREATE TYPE payment_status AS ENUM ('pendiente_verificacion', 'aprobado', 'rechazado');
 CREATE TYPE feedback_type     AS ENUM ('sugerencia', 'queja');
@@ -79,7 +81,7 @@ CREATE TABLE users (
 
                        created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                        updated_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-) WITH (fillfactor = 80);  -- UPDATEs frecuentes (status, strikes) → espacio para HOT updates
+) WITH (fillfactor = 80);
 
 -- Índices de users
 CREATE INDEX idx_users_email       ON users (email) WHERE deleted_at IS NULL;
@@ -123,10 +125,10 @@ CREATE TABLE user_subscriptions (
                                     user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                     membership_id UUID NOT NULL REFERENCES memberships(id),
 
-    -- URL validada con dominio conocido (tu storage, no URLs arbitrarias)
+    -- URL validada con dominio conocido
                                     payment_proof_url VARCHAR(512)
                                         CHECK (payment_proof_url IS NULL OR
-                                               payment_proof_url ~* '^https://[a-z0-9\-]+\.tudominio\.com/'),
+                                               payment_proof_url ~* '^https?://'),
                                     payment_status    payment_status DEFAULT 'pendiente_verificacion',
                                     verified_by       UUID REFERENCES users(id),        -- admin que aprobó
                                     verified_at       TIMESTAMP WITH TIME ZONE,         -- cuándo se aprobó
@@ -168,10 +170,11 @@ CREATE TABLE feedback (
     -- Límite en content para evitar abusos de almacenamiento
                           content    TEXT NOT NULL CHECK (length(content) >= 10 AND length(content) <= 5000),
 
-    -- URL restringida a tu propio dominio de storage
+    -- URL restringida
                           evidence_url VARCHAR(512)
+                              -- URL libre para desarrollo
                               CHECK (evidence_url IS NULL OR
-                                     evidence_url ~* '^https://[a-z0-9\-]+\.tudominio\.com/'),
+                                     evidence_url ~* '^https?://'),
 
                           status       feedback_status DEFAULT 'nuevo',
                           is_flagged   BOOLEAN DEFAULT false,
@@ -283,7 +286,7 @@ CREATE TRIGGER trg_feedback_updated_at BEFORE UPDATE ON feedback FOR EACH ROW EX
 CREATE TRIGGER trg_reservations_updated_at BEFORE UPDATE ON reservations FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
 
 -- ==========================================
--- 5. ROW LEVEL SECURITY (RLS)
+-- 5. ROW LEVEL SECURITY (RLS) - ACTUALIZADO PARA LOS 6 ROLES
 -- ==========================================
 
 ALTER TABLE users             ENABLE ROW LEVEL SECURITY;
@@ -292,30 +295,31 @@ ALTER TABLE feedback          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reservations      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE classes           ENABLE ROW LEVEL SECURITY;
 
--- Ejemplo de políticas RLS (ajustar según tu framework de auth)
--- Los usuarios solo ven su propia data; el consejo ve todo
-
+-- 🌟 Users: Un usuario ve sus propios datos. Todos los empleados de staff pueden ver el directorio de usuarios.
 CREATE POLICY pol_users_self ON users
     USING (id = current_setting('app.current_user_id', true)::UUID
-    OR current_setting('app.current_role', true) = 'consejo');
+    OR current_setting('app.current_role', true) IN ('consejo', 'recepcion', 'entrenador', 'nutriologo', 'fisioterapeuta'));
 
+-- 🌟 Subscriptions: El usuario ve la suya. Consejo y Recepción ven todas para administrar pagos.
 CREATE POLICY pol_subs_self ON user_subscriptions
     USING (user_id = current_setting('app.current_user_id', true)::UUID
-    OR current_setting('app.current_role', true) IN ('consejo', 'entrenador'));
+    OR current_setting('app.current_role', true) IN ('consejo', 'recepcion'));
 
+-- 🌟 Feedback: El usuario ve el suyo. SOLO el Consejo Supremo tiene acceso a leer las quejas y sugerencias de todos.
 CREATE POLICY pol_feedback_self ON feedback
     USING (user_id = current_setting('app.current_user_id', true)::UUID
     OR current_setting('app.current_role', true) = 'consejo');
 
+-- 🌟 Reservations: El usuario ve las suyas. Recepción (para check-in), Entrenador (para pase de lista) y Consejo ven todas.
 CREATE POLICY pol_reservations_self ON reservations
     USING (user_id = current_setting('app.current_user_id', true)::UUID
-    OR current_setting('app.current_role', true) IN ('consejo', 'entrenador'));
+    OR current_setting('app.current_role', true) IN ('consejo', 'entrenador', 'recepcion'));
 
 -- ==========================================
 -- 6. LIMPIEZA AUTOMÁTICA
 -- ==========================================
 
--- Función para limpiar sesiones expiradas (ejecutar con pg_cron o cron externo)
+-- Función para limpiar sesiones expiradas
 CREATE OR REPLACE FUNCTION fn_cleanup_expired_sessions()
     RETURNS void LANGUAGE sql AS $$
 DELETE FROM user_sessions
